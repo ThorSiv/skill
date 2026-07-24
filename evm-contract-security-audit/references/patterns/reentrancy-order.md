@@ -6,11 +6,11 @@
 - Test: Reenter the same function from each external-call boundary and compare total claims before and after settlement.
 - Source: https://github.com/sanbir/evm-hack-registry — search `reentrancy checks effects interactions`
 
-### REENTRANCY-002: Cross-function stale state
-- Smell: One guarded function exposes an external call while another function reads or mutates the same accounting without the same guard.
-- Invariant: Shared accounting remains internally consistent across every callable path during an in-progress operation.
-- Test: At each callback, invoke sibling deposit, withdraw, borrow, repay, claim, and transfer paths that share state.
-- Source: https://github.com/sanbir/evm-hack-registry — search `cross function reentrancy`
+### REENTRANCY-002: Cross-function and read-only stale state
+- Smell: One guarded function exposes an external call while another function reads or mutates the same accounting without the same guard; read-only quote or valuation functions can observe that transient state.
+- Invariant: Shared accounting and every externally observable derived value remain internally consistent across every callable path during an in-progress operation.
+- Test: At each callback, inspect read-only prices and previews, then invoke sibling deposit, withdraw, borrow, repay, claim, and transfer paths that share state.
+- Source: https://github.com/sanbir/evm-hack-registry — search `cross function read only reentrancy`
 
 ### REENTRANCY-003: Callback authenticity gap
 - Smell: Swap, flash-loan, token-receiver, or hook callbacks trust parameters without binding the caller to an expected pool or token.
