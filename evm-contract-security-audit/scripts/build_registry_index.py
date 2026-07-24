@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -151,6 +152,16 @@ def classify(title: str) -> list[str]:
     return sorted(families) or ["unclassified"]
 
 
+def _escape_markdown_cell(value: str) -> str:
+    return (
+        value.replace("\\", "\\\\")
+        .replace("|", "\\|")
+        .replace("\r\n", "<br>")
+        .replace("\r", "<br>")
+        .replace("\n", "<br>")
+    )
+
+
 def fetch_tree(ref: str = "main") -> list[str]:
     """Fetch unique registry entry names using GitHub's recursive-tree API."""
 
@@ -171,14 +182,24 @@ def fetch_tree(ref: str = "main") -> list[str]:
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as error:
         raise RuntimeError(f"unable to fetch registry tree: {error}") from error
 
+    if not isinstance(payload, Mapping):
+        raise RuntimeError("malformed GitHub tree payload")
+
+    tree = payload.get("tree")
+    if not isinstance(tree, list):
+        raise RuntimeError("missing or malformed tree list")
+
     if payload.get("truncated"):
         raise RuntimeError("GitHub returned a truncated registry tree")
 
     entries = set()
-    for item in payload.get("tree", []):
-        path = item.get("path", "").strip("/")
+    for item in tree:
+        if not isinstance(item, Mapping) or not isinstance(item.get("path"), str):
+            raise RuntimeError("malformed tree entry")
+
+        path = item["path"].strip("/")
         if not path:
-            continue
+            raise RuntimeError("malformed tree entry")
 
         top_level = path.split("/", 1)[0]
         if not _SOURCE_ENTRY.match(top_level):
@@ -204,7 +225,9 @@ def render_index(entries: list[str]) -> str:
         "| --- | --- |",
     ]
     for source in canonical_entries:
-        lines.append(f"| {source} | {', '.join(classify(source))} |")
+        source_cell = _escape_markdown_cell(source)
+        families_cell = _escape_markdown_cell(", ".join(classify(source)))
+        lines.append(f"| {source_cell} | {families_cell} |")
     return "\n".join(lines) + "\n"
 
 
