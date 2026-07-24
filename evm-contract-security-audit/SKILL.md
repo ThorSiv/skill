@@ -36,9 +36,9 @@ Always check the baseline families: [access/proxy](references/patterns/access-pr
 | User-growable collections, batches, mandatory loops, gas-sensitive calls | [DoS/arrays/gas](references/patterns/dos-arrays-gas.md) |
 | Voting, proposals, timelocks, emissions, cyclic incentives | [governance/economic](references/patterns/governance-economic.md) |
 
-For each applicable pattern, compare its Smell to the code, state whether its Invariant holds, and perform its detection Test by source reasoning or non-destructive analysis. Report matched `FAMILY-NNN` IDs with code evidence, reachable-path reasoning, affected assets, confidence, and current versus structural exposure. Do not label a match exploitable until the path and asset impact are established.
+For each applicable pattern, compare its Smell to the code, state whether its Invariant holds, and perform its detection Test by source reasoning or non-destructive analysis. Report matched `FAMILY-NNN` IDs with code evidence, reachable-path reasoning, affected assets, confidence, and current versus structural exposure. Every matched finding must include registry provenance: cite the family pattern's Source URL and search hook, then include the most relevant direct `source` link from [references/source-index.md](references/source-index.md) when one is available. Do not label a match exploitable until the path and asset impact are established.
 
-Use [references/source-index.md](references/source-index.md) to find related registry cases by family or keyword. Follow its `source` or `search` links to [sanbir/evm-hack-registry](https://github.com/sanbir/evm-hack-registry) only when deeper source analysis is useful; treat those files as research provenance and do not run their exploit or replay artifacts.
+Use the source index to find related registry cases by family or keyword. Follow its `source` or `search` links to [sanbir/evm-hack-registry](https://github.com/sanbir/evm-hack-registry) only when deeper source analysis is useful; treat every registry citation as research provenance, not proof that the reviewed contract shares a reachable vulnerability. Do not run registry exploit or replay artifacts.
 
 ## Mandatory collection and counting tests
 

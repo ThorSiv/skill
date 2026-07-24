@@ -37,7 +37,7 @@ FORBIDDEN_MARKERS = {
     "vm.deal": re.compile(r"\bvm\.deal\s*\(", re.IGNORECASE),
     "vm.store": re.compile(r"\bvm\.store\s*\(", re.IGNORECASE),
     "createSelectFork": re.compile(r"\bcreateSelectFork\b", re.IGNORECASE),
-    "broadcast": re.compile(r"\bbroadcast\s*\(", re.IGNORECASE),
+    "broadcast": re.compile(r"\b(?:start|stop)?broadcast\s*\(", re.IGNORECASE),
     "private key": re.compile(r"\bprivate[ _-]?key\b", re.IGNORECASE),
     "seed phrase": re.compile(r"\bseed[ _-]?phrase\b", re.IGNORECASE),
 }

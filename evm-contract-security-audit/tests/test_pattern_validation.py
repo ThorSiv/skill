@@ -160,6 +160,20 @@ class PatternValidationTests(unittest.TestCase):
         errors = "\n".join(self.errors())
         self.assertIn("forbidden marker vm.store", errors)
 
+    def test_rejects_foundry_broadcast_method_variants(self):
+        target = self.root / "references" / "patterns" / FAMILY_FILES[0]
+        for method in (
+            "vm.broadcast()",
+            "vm.startBroadcast()",
+            "startBroadcast()",
+            "vm.stopBroadcast()",
+            "stopBroadcast()",
+            "VM.STARTBROADCAST()",
+        ):
+            with self.subTest(method=method):
+                target.write_text(pattern() + f"\n`{method}`\n", encoding="utf-8")
+                self.assertIn("forbidden marker broadcast", "\n".join(self.errors()))
+
 
 if __name__ == "__main__":
     unittest.main()
