@@ -1,0 +1,4 @@
+interface:
+  display_name: "EVM Contract Security Audit"
+  short_description: "Audit EVM contracts for asset-loss vulnerabilities"
+  default_prompt: "Use $evm-contract-security-audit to determine whether this EVM contract can be exploited to steal or dilute user assets."
