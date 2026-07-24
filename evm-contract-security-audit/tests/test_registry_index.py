@@ -16,6 +16,12 @@ def fetch_from_payload(payload):
         return fetch_tree()
 
 
+def fetch_from_payloads(*payloads):
+    responses = [io.StringIO(json.dumps(payload)) for payload in payloads]
+    with patch("build_registry_index.urlopen", side_effect=responses):
+        return fetch_tree()
+
+
 class RegistryIndexTests(unittest.TestCase):
     def test_normalize_entry_removes_exploit_suffix(self):
         self.assertEqual(
@@ -66,7 +72,7 @@ class RegistryIndexTests(unittest.TestCase):
 
         self.assertEqual(
             fetch_from_payload(payload),
-            ["100-directory-entry", "200-file-entry"],
+            ["100-directory-entry_exp", "200-file-entry_exp.sol"],
         )
 
     def test_fetch_tree_rejects_non_mapping_payload(self):
@@ -87,32 +93,82 @@ class RegistryIndexTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed tree entry"):
                     fetch_from_payload({"truncated": False, "tree": [item]})
 
-    def test_fetch_tree_rejects_truncated_response(self):
-        with self.assertRaisesRegex(RuntimeError, "truncated registry tree"):
-            fetch_from_payload({"truncated": True, "tree": []})
+    def test_fetch_tree_traverses_deterministically_after_truncated_response(self):
+        recursive = {"truncated": True, "tree": []}
+        root = {
+            "truncated": False,
+            "tree": [
+                {"path": "archive", "type": "tree", "sha": "archive-sha"},
+                {"path": "200-direct_exp", "type": "tree", "sha": "direct-sha"},
+            ],
+        }
+        archive = {
+            "truncated": False,
+            "tree": [
+                {"path": "100-nested_exp", "type": "tree", "sha": "nested-sha"},
+            ],
+        }
+
+        self.assertEqual(
+            fetch_from_payloads(recursive, root, archive),
+            ["200-direct_exp", "archive/100-nested_exp"],
+        )
+
+    def test_fetch_tree_rejects_truncated_shallow_root(self):
+        with self.assertRaisesRegex(RuntimeError, "truncated registry root tree"):
+            fetch_from_payloads(
+                {"truncated": True, "tree": []},
+                {"truncated": True, "tree": []},
+            )
 
     def test_render_index_escapes_markdown_table_cells(self):
         rendered = render_index(["100-zeta|line\nbreak\\vault"])
 
-        self.assertEqual(
-            rendered.splitlines()[-1],
+        rows = [
+            line for line in rendered.splitlines() if line.startswith("| 100-")
+        ]
+        self.assertEqual(len(rows), 1)
+        self.assertIn(
             "| 100-zeta\\|line<br>break\\\\vault | amm-vault-staking |",
+            rows[0],
         )
 
     def test_render_index_is_sorted_and_deduplicated(self):
         rendered = render_index(
-            ["200-zeta_exp", "100-alpha_exp", "200-zeta"]
+            ["200-zeta_exp", "100-alpha_exp", "200-zeta_exp"]
         )
 
+        rows = [
+            line
+            for line in rendered.splitlines()
+            if line.startswith("| 100-") or line.startswith("| 200-")
+        ]
         self.assertEqual(
-            rendered,
-            "# EVM Hack Registry Source Index\n"
-            "\n"
-            "| Source entry | Pattern families |\n"
-            "| --- | --- |\n"
-            "| 100-alpha | unclassified |\n"
-            "| 200-zeta | unclassified |\n",
+            [row.split(" | ", 1)[0] for row in rows],
+            ["| 100-alpha_exp", "| 200-zeta_exp"],
         )
+
+    def test_every_inventory_entry_appears_in_exactly_one_row(self):
+        entries = ["one_exp", "two_exp", "three_exp"]
+        rendered = render_index(entries)
+
+        for entry in entries:
+            self.assertEqual(
+                sum(line.startswith(f"| {entry} |") for line in rendered.splitlines()),
+                1,
+            )
+
+    def test_normalization_collisions_do_not_drop_source_variants(self):
+        entries = ["2023-07-Curve_exp01", "2023-07-Curve_exp02"]
+        rendered = render_index(entries)
+
+        rows = [
+            line
+            for line in rendered.splitlines()
+            if line.startswith("| 2023-07-Curve_exp")
+        ]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(set(rows)), 2)
 
 
 if __name__ == "__main__":
